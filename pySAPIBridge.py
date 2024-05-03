@@ -1,11 +1,15 @@
 import pythoncom
 import win32com.client
+import win32com.server.register
+from win32com.shell.shell import ShellExecuteEx
+from win32com.shell import shellcon
 import azure.cognitiveservices.speech as speechsdk
 import time
 import json
 import pygame
 import json
-import win32com.server.register
+import logging
+logging.basicConfig(filename='PythonTTSVoice.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_credentials(file_path):
     try:
@@ -19,10 +23,11 @@ def load_credentials(file_path):
         return None
 
 
-class PythonTTSVoice():
+class PythonTTSVoice:
     _public_methods_ = ['Speak', 'Pause', 'Resume', 'GetVoices', 'SetVoice', 'SetInterest', 'WaitForNotifyEvent']
-    _reg_progid_ = "PythonTTSVoice"
-    _reg_clsid_ = pythoncom.CreateGuid()
+    _reg_progid_ = "PythonTTSVoice.Application"
+    _reg_clsid_ = pythoncom.CreateGuid()  # Generates a new CLSID, or use pythoncom.CreateGuid() to generate one and hard-code it here
+    credentials = None  # Class-level attribute
 
     def __init__(self, credentials):
         # Initialize the COM library within the class
@@ -38,6 +43,10 @@ class PythonTTSVoice():
         self.current_voice = 'en-US-JessaNeural'
         pygame.mixer.init()
 
+    @classmethod
+    def set_credentials(cls, creds):
+        cls.credentials = creds
+        
     def Speak(self, text):
         self.speech_config.request_word_level_timestamps()
         stream = speechsdk.audio.AudioOutputStream.create_pull_audio_output_stream()
@@ -108,11 +117,13 @@ class PythonTTSVoice():
         return None
 
         
+
+# Self-registration logic
 if __name__ == '__main__':
     credentials_path = 'credentials.json'
     credentials = load_credentials(credentials_path)
     if credentials:
-        tts_voice = PythonTTSVoice(credentials)
+        PythonTTSVoice.set_credentials(load_credentials('credentials.json'))
         print("COM server registration starting...")
         win32com.server.register.UseCommandLine(PythonTTSVoice, "--register")
     else:

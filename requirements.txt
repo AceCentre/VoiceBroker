@@ -1,0 +1,4 @@
+azure-cognitiveservices-speech
+pythoncom
+pywin32
+simpleaudio

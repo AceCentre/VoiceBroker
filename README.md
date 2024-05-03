@@ -34,7 +34,7 @@ Before you start using this project, ensure you have the following:
 2, **Install Dependencies**
 
     ```bash
-    pip install azure-cognitiveservices-speech pythoncom pywin32 simpleaudio
+    pip install -r requirements.txt
     ```
 
 3. **Configure Azure API Key and Region**

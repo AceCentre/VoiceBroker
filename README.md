@@ -2,6 +2,14 @@
 
 This project demonstrates how to create a Python COM server that functions as a bridge between the Microsoft Azure Speech SDK and the Speech Application Programming Interface (SAPI) used by Windows. It allows applications expecting SAPI compatibility to utilize Azure's advanced neural voices for text-to-speech (TTS) functionalities.
 
+## Aims
+
+[] Demonstrate how to do this
+[] First work on Azure (why? Because I know we can get word level timing - it should help for callbacks)
+[] Extend this whole code for other libraries
+[] Allow for configuration by a seperate app to allow for choice of voices etc
+
+
 ## Features
 
 - Utilizes Azure Cognitive Services Speech SDK for high-quality neural voices.

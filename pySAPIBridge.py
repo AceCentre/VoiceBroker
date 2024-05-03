@@ -3,8 +3,9 @@ import win32com.client
 import azure.cognitiveservices.speech as speechsdk
 import time
 import json
-import simpleaudio
+import pygame
 import json
+import win32com.server.register
 
 def load_credentials(file_path):
     try:
@@ -18,18 +19,24 @@ def load_credentials(file_path):
         return None
 
 
-class PythonTTSVoice(win32com.client.Dispatch):
+class PythonTTSVoice():
     _public_methods_ = ['Speak', 'Pause', 'Resume', 'GetVoices', 'SetVoice', 'SetInterest', 'WaitForNotifyEvent']
-    _reg_progid_ = "Python.TTSVoice"
+    _reg_progid_ = "PythonTTSVoice"
     _reg_clsid_ = pythoncom.CreateGuid()
 
     def __init__(self, credentials):
+        # Initialize the COM library within the class
+        pythoncom.CoInitialize()
+        # Create an instance of the SAPI SpVoice COM object
+        self.sp_voice = win32com.client.Dispatch("SAPI.SpVoice")
         microsoft_creds = credentials['Microsoft']
         self.speech_config = speechsdk.SpeechConfig(subscription=microsoft_creds['TOKEN'], region=microsoft_creds['region'])
-        self.audio_config = speechsdk.audio.AudioConfig(use_default_microphone=False)  # Corrected as no microphone needed
-        self.speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=self.speech_config, audio_config=None)
+        self.stream = speechsdk.audio.PullAudioOutputStream()
+        self.audio_config = speechsdk.audio.AudioConfig(stream=self.stream)
+        self.speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=self.speech_config, audio_config=self.audio_config)
         self.event_interests = {}
         self.current_voice = 'en-US-JessaNeural'
+        pygame.mixer.init()
 
     def Speak(self, text):
         self.speech_config.request_word_level_timestamps()
@@ -42,26 +49,39 @@ class PythonTTSVoice(win32com.client.Dispatch):
         if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
             json_result = json.loads(result.json)
             words_info = json_result.get('NBest')[0].get('Words')
-            self.words_info = words_info
+            self.words_info = words_info  # Store word timing data for event synchronization
             self.audio_stream = stream
-            self.play_audio(stream)
+            self.play_audio(stream, words_info)
         elif result.reason == speechsdk.ResultReason.Canceled:
             print("Speech synthesis canceled: {}".format(result.cancellation_details.reason))
 
-    def play_audio(self, stream):
+    def play_audio(self, stream, words_info):
+        # Detach the stream and read all data into a byte buffer
         stream.detach()
-        data = stream.read_all()
-        self.playback = simpleaudio.WaveObject(data, 1, 2, 16000).play()
-        self.playback.wait_done()
+        data = self.stream.read_all()
+        sound_file = io.BytesIO(data)
+        sound = pygame.mixer.Sound(file=sound_file)
+        
+        # Start playback and handle timing events
+        self.playback = sound.play()
+        start_time = pygame.time.get_ticks()  # Get the current tick count
 
+        # Monitor playback and trigger events based on word timings
+        while pygame.mixer.get_busy():
+            current_time = pygame.time.get_ticks() - start_time
+            for word in words_info:
+                if 'start_time' not in word:
+                    if word['Offset'] <= current_time <= word['Offset'] + word['Duration']:
+                        print(f"Word spoken: {word['Word']}")
+                        word['start_time'] = current_time  # Mark as handled
+
+            pygame.time.delay(100)  # Check every 100 milliseconds
     
     def Pause(self):
-        if self.playback:
-            self.playback.stop()
-    
+        pygame.mixer.pause()  # This pauses all sounds in the mixer
+
     def Resume(self):
-        if self.audio_stream:
-            self.play_audio(self.audio_stream)
+        pygame.mixer.unpause()  # This resumes all paused sounds
 
     def GetVoices(self):
         voices = self.speech_synthesizer.get_voices_list()

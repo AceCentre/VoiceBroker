@@ -4,14 +4,28 @@ import azure.cognitiveservices.speech as speechsdk
 import time
 import json
 import simpleaudio
+import json
+
+def load_credentials(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print("The specified credentials file was not found.")
+        return None
+    except json.JSONDecodeError:
+        print("Error decoding JSON from the credentials file.")
+        return None
+
 
 class PythonTTSVoice(win32com.client.Dispatch):
     _public_methods_ = ['Speak', 'Pause', 'Resume', 'GetVoices', 'SetVoice', 'SetInterest', 'WaitForNotifyEvent']
     _reg_progid_ = "Python.TTSVoice"
     _reg_clsid_ = pythoncom.CreateGuid()
 
-    def __init__(self, api_key, region):
-        self.speech_config = speechsdk.SpeechConfig(subscription=api_key, region=region)
+    def __init__(self, credentials):
+        microsoft_creds = credentials['Microsoft']
+        self.speech_config = speechsdk.SpeechConfig(subscription=microsoft_creds['TOKEN'], region=microsoft_creds['region'])
         self.audio_config = speechsdk.audio.AudioConfig(use_default_microphone=False)  # Corrected as no microphone needed
         self.speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=self.speech_config, audio_config=None)
         self.event_interests = {}
@@ -75,5 +89,11 @@ class PythonTTSVoice(win32com.client.Dispatch):
 
         
 if __name__ == '__main__':
-    print("Registering COM server...")
-    win32com.server.register.UseCommandLine(PythonTTSVoice, "--register")
+    credentials_path = 'credentials.json'
+    credentials = load_credentials(credentials_path)
+    if credentials:
+        tts_voice = PythonTTSVoice(credentials)
+        print("COM server registration starting...")
+        win32com.server.register.UseCommandLine(PythonTTSVoice, "--register")
+    else:
+        print("Failed to load credentials. Check your credentials file and try again.")

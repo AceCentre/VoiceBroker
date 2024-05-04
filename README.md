@@ -4,11 +4,11 @@ This project demonstrates how to create a Python COM server that functions as a 
 
 ## Aims
 
-[x] Basic setting as a COM Service wih some functions
-[] Correctly register in the registry
-[] First work on Azure (why? Because I know we can get word level timing - it should help for callbacks)
-[] Extend this whole code for other libraries
-[] Allow for configuration by a seperate app to allow for choice of voices etc
+- [x] Basic setting as a COM Service wih some functions
+- [] Correctly register in the registry
+- [] First work on Azure (why? Because I know we can get word level timing - it should help for callbacks)
+- [] Extend this whole code for other libraries (Abstract the class out)
+- [] Allow for configuration by a seperate app to allow for choice of voices etc
 
 
 ## Features

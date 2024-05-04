@@ -122,6 +122,85 @@ class PythonTTSVoice:
             return []
 
 
+    def register_voices(self):
+        voices = self._get_voices_dict()
+        for voice in voices:
+            self._register_voice(voice)
+
+    def _get_voices_dict(self):
+        result = self.speech_synthesizer.get_voices_async().get()
+        return [{'name': v.short_name, 'locale': v.locale, 'gender': v.gender} for v in result.voices]
+
+    def _register_voice(self, voice):
+        """Registers each voice as a SAPI compliant voice in the Windows Registry."""
+        base_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\"
+        voice_key_name = f"{voice['name']}_{voice['locale']}"
+        key_path = base_key_path + voice_key_name
+
+        try:
+            # Create or open the key path
+            key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, key_path)
+            winreg.SetValueEx(key, "Name", 0, winreg.REG_SZ, voice['name'])
+            winreg.SetValueEx(key, "Locale", 0, winreg.REG_SZ, voice['locale'])
+            winreg.SetValueEx(key, "Gender", 0, winreg.REG_SZ, voice['gender'])
+            winreg.SetValueEx(key, "CLSID", 0, winreg.REG_SZ, str(self._reg_clsid_))
+            winreg.CloseKey(key)
+            print(f"Registered voice: {voice_key_name}")
+        except Exception as e:
+            print(f"Failed to register voice {voice_key_name}: {str(e)}")
+
+    def unregister(self):
+        """Unregisters the application and all voices from the Windows Registry."""
+        base_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\"
+        try:
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base_key_path, 0, winreg.KEY_ALL_ACCESS)
+            for i in range(winreg.QueryInfoKey(key)[0]):
+                try:
+                    subkey_name = winreg.EnumKey(key, 0)
+                    winreg.DeleteKey(key, subkey_name)
+                    print(f"Unregistered voice: {subkey_name}")
+                except OSError as e:
+                    print(f"Failed to delete subkey {subkey_name}: {str(e)}")
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"Failed to unregister voices: {str(e)}")
+
+#     def register_app(self):
+#         """Registers the application as a COM server."""
+#         try:
+#             # Register the server using the win32com.server.register module
+#             win32com.server.register.UseCommandLine(PythonTTSVoice)
+#             print("Application registered as COM server.")
+#         except Exception as e:
+#             print(f"Failed to register application: {str(e)}")
+
+
+    def register_app(self):
+        """Registers the application as a COM server and sets up SAPI registry entries."""
+        try:
+            # Basic COM registration
+            win32com.server.register.UseCommandLine(PythonTTSVoice)
+
+            # SAPI registration for the engine
+            engine_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\PythonTTSVoice"
+            key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, engine_key_path)
+            winreg.SetValueEx(key, "CLSID", 0, winreg.REG_SZ, str(self._reg_clsid_))
+            winreg.SetValueEx(key, "LangDataPath", 0, winreg.REG_SZ, "path_to_language_data")
+            winreg.SetValueEx(key, "VoiceDataPath", 0, winreg.REG_SZ, "path_to_voice_data")
+            winreg.SetValueEx(key, "Attributes", 0, winreg.REG_SZ, "Age=Adult;Gender=Female;Language=409;")  # Customize as needed
+
+#             # Optionally, register each voice supported by the engine
+#             for voice in self.get_voices():
+#                 voice_key_path = f"{engine_key_path}\\{voice['name']}"
+#                 voice_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, voice_key_path)
+#                 winreg.SetValueEx(voice_key, "Name", 0, winreg.REG_SZ, voice['name'])
+#                 winreg.CloseKey(voice_key)
+
+            winreg.CloseKey(key)
+            print("Application and voices registered as SAPI engine.")
+        except Exception as e:
+            print(f"Failed to register application as SAPI engine: {str(e)}")
+
     def SetVoice(self, voice_name):
         # Setting a voice directly if it exists in the fetched voices
         for voice in self.speech_synthesizer.get_voices_list():

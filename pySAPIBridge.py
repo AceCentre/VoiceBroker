@@ -1,101 +1,127 @@
 import pythoncom
 import win32com.client
 import win32com.server.register
-from win32com.shell.shell import ShellExecuteEx
-from win32com.shell import shellcon
 import azure.cognitiveservices.speech as speechsdk
 import time
-import json
-import pygame
+import io
 import json
 import logging
+
 logging.basicConfig(filename='PythonTTSVoice.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def load_credentials(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        print("The specified credentials file was not found.")
-        return None
-    except json.JSONDecodeError:
-        print("Error decoding JSON from the credentials file.")
-        return None
-
 
 class PythonTTSVoice:
     _public_methods_ = ['Speak', 'Pause', 'Resume', 'GetVoices', 'SetVoice', 'SetInterest', 'WaitForNotifyEvent']
     _reg_progid_ = "PythonTTSVoice.Application"
     _reg_clsid_ = pythoncom.CreateGuid()  # Generates a new CLSID, or use pythoncom.CreateGuid() to generate one and hard-code it here
-    credentials = None  # Class-level attribute
 
-    def __init__(self, credentials):
+    def __init__(self):
+        logging.debug(f"[init] running")
+        logging.debug(f"[init] get creds")
+        self.get_credentials('credentials.json')
         # Initialize the COM library within the class
         pythoncom.CoInitialize()
         # Create an instance of the SAPI SpVoice COM object
         self.sp_voice = win32com.client.Dispatch("SAPI.SpVoice")
-        microsoft_creds = credentials['Microsoft']
+        microsoft_creds = self.credentials['Microsoft']
         self.speech_config = speechsdk.SpeechConfig(subscription=microsoft_creds['TOKEN'], region=microsoft_creds['region'])
-        self.stream = speechsdk.audio.PullAudioOutputStream()
-        self.audio_config = speechsdk.audio.AudioConfig(stream=self.stream)
+        self.audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True)
         self.speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=self.speech_config, audio_config=self.audio_config)
         self.event_interests = {}
         self.current_voice = 'en-US-JessaNeural'
-        pygame.mixer.init()
+        #pygame.mixer.init()
+        logging.debug(f"[init] end")
 
-    @classmethod
-    def set_credentials(cls, creds):
-        cls.credentials = creds
-        
+    def get_credentials(self,file_path):
+        try:
+            with open(file_path, 'r') as file:
+                self.credentials = json.load(file)
+        except FileNotFoundError:
+            logging.debug("The specified credentials file was not found.")
+            return None
+        except json.JSONDecodeError:
+            logging.debug("Error decoding JSON from the credentials file.")
+            return None
+
     def Speak(self, text):
-        self.speech_config.request_word_level_timestamps()
-        stream = speechsdk.audio.AudioOutputStream.create_pull_audio_output_stream()
-        audio_config = speechsdk.audio.AudioConfig(stream=stream)
-        synthesizer = speechsdk.SpeechSynthesizer(speech_config=self.speech_config, audio_config=audio_config)
-        synthesis_future = synthesizer.speak_text_async(text)
-        result = synthesis_future.get()
-
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            json_result = json.loads(result.json)
-            words_info = json_result.get('NBest')[0].get('Words')
-            self.words_info = words_info  # Store word timing data for event synchronization
-            self.audio_stream = stream
-            self.play_audio(stream, words_info)
-        elif result.reason == speechsdk.ResultReason.Canceled:
-            print("Speech synthesis canceled: {}".format(result.cancellation_details.reason))
-
-    def play_audio(self, stream, words_info):
-        # Detach the stream and read all data into a byte buffer
-        stream.detach()
-        data = self.stream.read_all()
-        sound_file = io.BytesIO(data)
-        sound = pygame.mixer.Sound(file=sound_file)
+        logging.debug(f"[Speak] Start with text: {text}")
+        try:
+            result = synthesizer.speak_text_async(text).get()
+            if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                logging.info("Speech synthesis completed successfully.")
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                cancellation_details = result.cancellation_details
+                logging.error(f"Speech synthesis canceled: {cancellation_details.reason}")
+                logging.error(f"Error details: {cancellation_details.error_details}")
+        except Exception as e:
+            logging.error(f"An error occurred: {str(e)}")
         
-        # Start playback and handle timing events
-        self.playback = sound.play()
-        start_time = pygame.time.get_ticks()  # Get the current tick count
+#     def Speak(self, text):
+#         logging.debug("[Speak] Start with text: {}".format(text))
+#         try:
+#             result = self.speech_synthesizer.speak_text_async(text).get()
+#             if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+#                 stream = speechsdk.AudioDataStream(result)
+#                 self.play_audio(stream)
+#                 logging.debug("[Speak] Synthesis completed successfully.")
+#             elif result.reason == speechsdk.ResultReason.Canceled:
+#                 logging.error("[Speak] Speech synthesis canceled: Reason={}".format(result.cancellation_details.reason))
+#         except Exception as e:
+#             logging.error("[Speak] Failed to synthesize speech: {}".format(str(e)))
 
-        # Monitor playback and trigger events based on word timings
-        while pygame.mixer.get_busy():
-            current_time = pygame.time.get_ticks() - start_time
-            for word in words_info:
-                if 'start_time' not in word:
-                    if word['Offset'] <= current_time <= word['Offset'] + word['Duration']:
-                        print(f"Word spoken: {word['Word']}")
-                        word['start_time'] = current_time  # Mark as handled
-
-            pygame.time.delay(100)  # Check every 100 milliseconds
+#     def play_audio(self, stream):
+#         logging.debug("[play_audio] Start")
+#         try:
+#             audio_buffer = bytearray()  # Maintaining a mutable overall buffer
+#             
+#             # Use a temporary mutable buffer for each chunk read
+#             chunk_size = 1024  # Define the size of each chunk to read
+#             while True:
+#                 chunk = bytearray(chunk_size)  # Initialize a fresh bytearray for each read
+#                 num_bytes = stream.read_data(chunk)  # Read into the bytearray
+#                 
+#                 if num_bytes == 0:
+#                     break  # If no bytes were read, the stream is exhausted
+#     
+#                 audio_buffer.extend(chunk[:num_bytes])  # Append only the actual bytes read
+#     
+#             # Convert the accumulated bytearray to bytes for playback or further processing
+#             audio_bytes = bytes(audio_buffer)  # Convert bytearray to bytes
+#             
+#             # Now use `audio_bytes` with Pydub or any other audio processing library
+#             audio_segment = AudioSegment(
+#                 data=audio_bytes, 
+#                 sample_width=2,  # Adjust as per the audio data specifics
+#                 frame_rate=16000,  # Sample rate of the audio
+#                 channels=1  # Mono audio
+#             )
+#             play(audio_segment)  # Play the audio with Pydub
+#             
+#             logging.debug("[play_audio] Playback initiated and completed successfully.")
+#         except Exception as e:
+#             logging.error(f"General error in play_audio method: {str(e)}")
     
+                        
     def Pause(self):
-        pygame.mixer.pause()  # This pauses all sounds in the mixer
-
-    def Resume(self):
-        pygame.mixer.unpause()  # This resumes all paused sounds
-
-    def GetVoices(self):
-        voices = self.speech_synthesizer.get_voices_list()
-        return [{'Name': voice.short_name, 'Locale': voice.locale, 'Gender': voice.gender} for voice in voices]
+        pass
+        #pygame.mixer.pause()  # This pauses all sounds in the mixer
     
+    def Resume(self):
+        pass
+        #pygame.mixer.unpause()  # This resumes all paused sounds
+    
+    def GetVoices(self):
+        try:
+            result = self.speech_synthesizer.get_voices_async().get()
+            voices_info = []
+            for voice in result.voices:
+                voice_info = f"{voice.short_name}|{voice.locale}|{voice.local_name}|{voice.gender}"
+                voices_info.append(voice_info)            
+            return ";".join(voices_info)
+        except Exception as e:
+            print(f"Failed to get voices: {str(e)}")
+            return []
+
+
     def SetVoice(self, voice_name):
         # Setting a voice directly if it exists in the fetched voices
         for voice in self.speech_synthesizer.get_voices_list():
@@ -103,7 +129,7 @@ class PythonTTSVoice:
                 self.speech_synthesizer.properties[speechsdk.PropertyId.SpeechServiceConnection_SynthVoice] = voice_name
                 return f"Voice set to {voice_name}"
         return "Voice not found"
-
+    
     def SetInterest(self, event_id, enabled):
         self.event_interests[event_id] = enabled
     
@@ -116,15 +142,7 @@ class PythonTTSVoice:
             time.sleep(0.1)  # Sleep briefly to avoid high CPU usage
         return None
 
-        
-
 # Self-registration logic
 if __name__ == '__main__':
-    credentials_path = 'credentials.json'
-    credentials = load_credentials(credentials_path)
-    if credentials:
-        PythonTTSVoice.set_credentials(load_credentials('credentials.json'))
-        print("COM server registration starting...")
-        win32com.server.register.UseCommandLine(PythonTTSVoice, "--register")
-    else:
-        print("Failed to load credentials. Check your credentials file and try again.")
+    logging.debug("COM server registration starting...")
+    win32com.server.register.UseCommandLine(PythonTTSVoice)

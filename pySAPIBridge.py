@@ -1,4 +1,5 @@
 import pythoncom
+import winreg 
 import win32com.client
 import win32com.server.register
 import azure.cognitiveservices.speech as speechsdk
@@ -7,14 +8,14 @@ import io
 import json
 import logging
 
-logging.basicConfig(filename='PythonTTSVoice.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='VoiceBroker.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class PythonTTSVoice:
+class VoiceBroker:
     _public_methods_ = ['Speak', 'Pause', 'Resume', 'GetVoices', 'SetVoice', 'SetInterest', 'WaitForNotifyEvent']
-    _reg_progid_ = "PythonTTSVoice.Application"
+    _reg_progid_ = "VoiceBroker.Application"
     _reg_clsid_ = pythoncom.CreateGuid()  # Generates a new CLSID, or use pythoncom.CreateGuid() to generate one and hard-code it here
 
-    def __init__(self):
+    def __init__(self, register=True):
         logging.debug(f"[init] running")
         logging.debug(f"[init] get creds")
         self.get_credentials('credentials.json')
@@ -28,8 +29,13 @@ class PythonTTSVoice:
         self.speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=self.speech_config, audio_config=self.audio_config)
         self.event_interests = {}
         self.current_voice = 'en-US-JessaNeural'
-        #pygame.mixer.init()
         logging.debug(f"[init] end")
+        # You wouldnt usually do this - it would be done on install but Im being lazy
+        if register:
+            self.register_app()        
+        else:
+            self.unregister_com_server()
+            self.unregister_sapi_entries()
 
     def get_credentials(self,file_path):
         try:
@@ -45,7 +51,7 @@ class PythonTTSVoice:
     def Speak(self, text):
         logging.debug(f"[Speak] Start with text: {text}")
         try:
-            result = synthesizer.speak_text_async(text).get()
+            result = self.speech_synthesizer.speak_text_async(text).get()
             if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
                 logging.info("Speech synthesis completed successfully.")
             elif result.reason == speechsdk.ResultReason.Canceled:
@@ -54,51 +60,38 @@ class PythonTTSVoice:
                 logging.error(f"Error details: {cancellation_details.error_details}")
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
-        
-#     def Speak(self, text):
-#         logging.debug("[Speak] Start with text: {}".format(text))
-#         try:
-#             result = self.speech_synthesizer.speak_text_async(text).get()
-#             if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-#                 stream = speechsdk.AudioDataStream(result)
-#                 self.play_audio(stream)
-#                 logging.debug("[Speak] Synthesis completed successfully.")
-#             elif result.reason == speechsdk.ResultReason.Canceled:
-#                 logging.error("[Speak] Speech synthesis canceled: Reason={}".format(result.cancellation_details.reason))
-#         except Exception as e:
-#             logging.error("[Speak] Failed to synthesize speech: {}".format(str(e)))
 
-#     def play_audio(self, stream):
-#         logging.debug("[play_audio] Start")
-#         try:
-#             audio_buffer = bytearray()  # Maintaining a mutable overall buffer
-#             
-#             # Use a temporary mutable buffer for each chunk read
-#             chunk_size = 1024  # Define the size of each chunk to read
-#             while True:
-#                 chunk = bytearray(chunk_size)  # Initialize a fresh bytearray for each read
-#                 num_bytes = stream.read_data(chunk)  # Read into the bytearray
-#                 
-#                 if num_bytes == 0:
-#                     break  # If no bytes were read, the stream is exhausted
-#     
-#                 audio_buffer.extend(chunk[:num_bytes])  # Append only the actual bytes read
-#     
-#             # Convert the accumulated bytearray to bytes for playback or further processing
-#             audio_bytes = bytes(audio_buffer)  # Convert bytearray to bytes
-#             
-#             # Now use `audio_bytes` with Pydub or any other audio processing library
-#             audio_segment = AudioSegment(
-#                 data=audio_bytes, 
-#                 sample_width=2,  # Adjust as per the audio data specifics
-#                 frame_rate=16000,  # Sample rate of the audio
-#                 channels=1  # Mono audio
-#             )
-#             play(audio_segment)  # Play the audio with Pydub
-#             
-#             logging.debug("[play_audio] Playback initiated and completed successfully.")
-#         except Exception as e:
-#             logging.error(f"General error in play_audio method: {str(e)}")
+    def play_audio(self, stream):
+        logging.debug("[play_audio] Start")
+        try:
+            audio_buffer = bytearray()  # Maintaining a mutable overall buffer
+            
+            # Use a temporary mutable buffer for each chunk read
+            chunk_size = 1024  # Define the size of each chunk to read
+            while True:
+                chunk = bytearray(chunk_size)  # Initialize a fresh bytearray for each read
+                num_bytes = stream.read_data(chunk)  # Read into the bytearray
+                
+                if num_bytes == 0:
+                    break  # If no bytes were read, the stream is exhausted
+    
+                audio_buffer.extend(chunk[:num_bytes])  # Append only the actual bytes read
+    
+            # Convert the accumulated bytearray to bytes for playback or further processing
+            audio_bytes = bytes(audio_buffer)  # Convert bytearray to bytes
+            
+            # Now use `audio_bytes` with Pydub or any other audio processing library
+            audio_segment = AudioSegment(
+                data=audio_bytes, 
+                sample_width=2,  # Adjust as per the audio data specifics
+                frame_rate=16000,  # Sample rate of the audio
+                channels=1  # Mono audio
+            )
+            play(audio_segment)  # Play the audio with Pydub
+            
+            logging.debug("[play_audio] Playback initiated and completed successfully.")
+        except Exception as e:
+            logging.error(f"General error in play_audio method: {str(e)}")
     
                         
     def Pause(self):
@@ -149,57 +142,56 @@ class PythonTTSVoice:
         except Exception as e:
             print(f"Failed to register voice {voice_key_name}: {str(e)}")
 
-    def unregister(self):
-        """Unregisters the application and all voices from the Windows Registry."""
-        base_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\"
-        try:
-            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base_key_path, 0, winreg.KEY_ALL_ACCESS)
-            for i in range(winreg.QueryInfoKey(key)[0]):
-                try:
-                    subkey_name = winreg.EnumKey(key, 0)
-                    winreg.DeleteKey(key, subkey_name)
-                    print(f"Unregistered voice: {subkey_name}")
-                except OSError as e:
-                    print(f"Failed to delete subkey {subkey_name}: {str(e)}")
-            winreg.CloseKey(key)
-        except Exception as e:
-            print(f"Failed to unregister voices: {str(e)}")
-
-#     def register_app(self):
-#         """Registers the application as a COM server."""
-#         try:
-#             # Register the server using the win32com.server.register module
-#             win32com.server.register.UseCommandLine(PythonTTSVoice)
-#             print("Application registered as COM server.")
-#         except Exception as e:
-#             print(f"Failed to register application: {str(e)}")
-
-
     def register_app(self):
         """Registers the application as a COM server and sets up SAPI registry entries."""
         try:
             # Basic COM registration
-            win32com.server.register.UseCommandLine(PythonTTSVoice)
+            win32com.server.register.UseCommandLine(VoiceBroker)
 
             # SAPI registration for the engine
-            engine_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\PythonTTSVoice"
+            engine_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\VoiceBroker"
             key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, engine_key_path)
             winreg.SetValueEx(key, "CLSID", 0, winreg.REG_SZ, str(self._reg_clsid_))
             winreg.SetValueEx(key, "LangDataPath", 0, winreg.REG_SZ, "path_to_language_data")
             winreg.SetValueEx(key, "VoiceDataPath", 0, winreg.REG_SZ, "path_to_voice_data")
             winreg.SetValueEx(key, "Attributes", 0, winreg.REG_SZ, "Age=Adult;Gender=Female;Language=409;")  # Customize as needed
-
-#             # Optionally, register each voice supported by the engine
-#             for voice in self.get_voices():
-#                 voice_key_path = f"{engine_key_path}\\{voice['name']}"
-#                 voice_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, voice_key_path)
-#                 winreg.SetValueEx(voice_key, "Name", 0, winreg.REG_SZ, voice['name'])
-#                 winreg.CloseKey(voice_key)
-
             winreg.CloseKey(key)
             print("Application and voices registered as SAPI engine.")
         except Exception as e:
             print(f"Failed to register application as SAPI engine: {str(e)}")
+
+
+    def unregister_com_server(self):
+        try:
+            win32com.server.register.UnregisterClasses(VoiceBroker)
+            print("COM server unregistered successfully.")
+        except Exception as e:
+            print(f"Failed to unregister COM server: {str(e)}")
+
+    def unregister_sapi_entries(self):
+        base_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens"
+        engine_key_name = "VoiceBroker"
+        
+        try:
+            engine_key_path = f"{base_key_path}\\{engine_key_name}"
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, engine_key_path, 0, winreg.KEY_ALL_ACCESS) as engine_key:
+                # Optionally, if you had registered individual voices, remove them
+                try:
+                    # Assuming you had subkeys under each voice
+                    num_subkeys = winreg.QueryInfoKey(engine_key)[0]
+                    for i in range(num_subkeys):
+                        subkey_name = winreg.EnumKey(engine_key, 0)
+                        winreg.DeleteKey(engine_key, subkey_name)
+                        print(f"Subkey {subkey_name} deleted.")
+                except Exception as e:
+                    print(f"Error deleting subkeys: {str(e)}")
+                
+                winreg.CloseKey(engine_key)
+            winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, engine_key_path)
+            print(f"Registry entry {engine_key_name} removed.")
+        except Exception as e:
+            print(f"Failed to remove registry entries: {str(e)}")
+
 
     def SetVoice(self, voice_name):
         # Setting a voice directly if it exists in the fetched voices
@@ -224,4 +216,4 @@ class PythonTTSVoice:
 # Self-registration logic
 if __name__ == '__main__':
     logging.debug("COM server registration starting...")
-    win32com.server.register.UseCommandLine(PythonTTSVoice)
+    VoiceBroker = VoiceBroker(register=False)

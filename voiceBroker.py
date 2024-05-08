@@ -162,11 +162,54 @@ class VoiceBroker:
 
 
     def unregister_com_server(self):
-        try:
-            win32com.server.register.UnregisterClasses(VoiceBroker)
-            print("COM server unregistered successfully.")
-        except Exception as e:
-            print(f"Failed to unregister COM server: {str(e)}")
+        # Unregister the classes using the win32com provided utility
+        win32com.server.register.UnregisterClasses(VoiceBroker)
+        
+        app_name = 'VoiceBroker'
+        paths = [
+            r"SOFTWARE\Classes\AppID",  # Typical for 32-bit on 32-bit machines or 64-bit on 64-bit machines
+            r"SOFTWARE\Wow6432Node\Classes\AppID"  # Typical for 32-bit on 64-bit machines
+        ]
+        total_deletions = 0
+        errors = []
+    
+        for path in paths:
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_ALL_ACCESS) as key:
+                    subkeys = []
+                    i = 0
+                    while True:
+                        try:
+                            subkey_name = winreg.EnumKey(key, i)
+                            subkeys.append(subkey_name)
+                            i += 1
+                        except WindowsError:
+                            break
+    
+                    for subkey_name in subkeys:
+                        try:
+                            subkey = winreg.OpenKey(key, subkey_name)
+                            try:
+                                value, _ = winreg.QueryValueEx(subkey, "AppID")
+                                if value.lower() == app_name.lower():
+                                    winreg.DeleteKey(key, subkey_name)
+                                    print(f"Deleted {subkey_name} in {path}")
+                                    total_deletions += 1
+                            except FileNotFoundError:
+                                pass
+                            finally:
+                                winreg.CloseKey(subkey)
+                        except WindowsError as e:
+                            errors.append(f"Failed to delete subkey {subkey_name} in {path}: {str(e)}")
+    
+            except WindowsError as e:
+                errors.append(f"Failed to open or modify registry at {path}: {str(e)}")
+    
+        print(f"Total deletions: {total_deletions}")
+        if errors:
+            print("Errors encountered:")
+            for error in errors:
+                print(error)
 
     def unregister_sapi_entries(self):
         base_key_path = "SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens"
@@ -216,4 +259,6 @@ class VoiceBroker:
 # Self-registration logic
 if __name__ == '__main__':
     logging.debug("COM server registration starting...")
+    #win32com.server.register.UseCommandLine(VoiceBroker)
     VoiceBroker = VoiceBroker(register=False)
+    # unregister_sapi_entries()

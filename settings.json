@@ -4,13 +4,15 @@
         "voiceid": "Joanna",
         "name": "Joanna",
         "language": "en-US",
-        "gender": "Female"
+        "gender": "Female",
+        "vendor": "VoiceBroker"
       },
       {
         "voiceid": "Matthew",
         "name": "Matthew",
         "language": "en-US",
-        "gender": "Male"
+        "gender": "Male",
+        "vendor": "VoiceBroker"
       }
     ],
     "microsoft": [
@@ -18,13 +20,16 @@
         "voiceid": "en-US-AriaNeural",
         "name": "Aria",
         "language": "en-US",
-        "gender": "Female"
+        "gender": "Female",
+        "vendor": "VoiceBroker"
+
       },
       {
         "voiceid": "en-US-GuyNeural",
         "name": "Guy",
         "language": "en-US",
-        "gender": "Male"
+        "gender": "Male",
+        "vendor": "VoiceBroker"        
       }
       ]
 }

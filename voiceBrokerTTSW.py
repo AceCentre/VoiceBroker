@@ -1,5 +1,6 @@
 #This is a version im working on just usng tts-wrapper. Im not sure how event emitting works or the correct calls to speak etc
-
+import win32com.client
+import win32com.server.register
 import pythoncom
 import json
 import logging
@@ -232,7 +233,6 @@ if __name__ == '__main__':
 
     if args.action == 'register':
         win32com.server.register.UseCommandLine(VoiceBroker)
-        register_com_server()
         register_tts_voices()
     elif args.action == 'unregister':
         unregister_com_server()

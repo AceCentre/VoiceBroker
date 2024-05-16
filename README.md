@@ -9,7 +9,7 @@ Quick notes:
 - Work with basic_demo_register.py and then find what is missing
 - Need cred files - email me
 - demoClientExtended is broken because https://github.com/willwade/py3-tts is broken on sapi in my humble opinon. But look at it as it gives interesting debug output like
-
+- i think we need to closely look at this documentation and try and match it https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms720163(v=vs.85)
 ```bash
 
 2024-05-16 16:10:21,238 - DEBUG - wrap_outparam(<POINTER(ISpeechObjectTokens) ptr=0x2d193a3ea00 at 2d19302e250>)

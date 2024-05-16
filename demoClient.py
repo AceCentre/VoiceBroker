@@ -1,15 +1,19 @@
+import pythoncom
 import win32com.client
 
-def test_com_server():
-    # Create a COM object instance from the PythonTTSVoice server
-    server = win32com.client.Dispatch("VoiceBroker.Application")
+def main():
+    pythoncom.CoInitialize()
+    try:
+        sapi_voice = win32com.client.Dispatch("SAPI.SpVoice")
+        for voice in sapi_voice.GetVoices():
+            if "VoiceBroker" in voice.GetDescription():
+                sapi_voice.Voice = voice
+                break
+        sapi_voice.Speak("Hello, this is a test of the Python TTS voice.")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        pythoncom.CoUninitialize()
 
-    # Retrieve and print the list of available voices
-    voices = server.GetVoices()
-    print(f"Available Voices: {voices}")
-
-    # Speak a sample text
-    server.Speak("Hello world")
-
-if __name__ == "__main__":
-    test_com_server()
+if __name__ == '__main__':
+    main()

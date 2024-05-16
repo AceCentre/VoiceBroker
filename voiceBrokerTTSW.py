@@ -154,7 +154,7 @@ def register_voice(voiceid, name, language, gender, vendor):
             winreg.SetValue(attr_key, "Language", winreg.REG_SZ, language)
             winreg.SetValue(attr_key, "Gender", winreg.REG_SZ, gender)
             winreg.SetValue(attr_key, "Vendor", winreg.REG_SZ, vendor)
-            winreg.SetValue(attr_key, "Name", winreg.REG_SZ, name)
+            winreg.SetValue(attr_key, "Name", winreg.REG_SZ, f"{vendor} {name} {{language}}")
 
             # Close the registry keys
             winreg.CloseKey(attr_key)

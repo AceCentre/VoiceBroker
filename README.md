@@ -31,7 +31,7 @@ I have a feeling we have methods that arent implemented or speech isnt being cal
 
 ## Features
 
-- Utilizes Azure Cognitive Services Speech SDK for high-quality neural voices.
+- Utilizes TTS-Wrapper to access a range of TTS systems and allow access via SAPI for high-quality neural voices.
 - Implements SAPI-like methods such as `Speak`, `Pause`, `Resume`, and voice selection.
 - Supports word-level timestamp events for synchronized operations.
 - Designed to work with any SAPI-compatible software on Windows.

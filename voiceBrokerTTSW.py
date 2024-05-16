@@ -225,7 +225,7 @@ def unregister_tts_voices():
             
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='VoiceBroker.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
     parser = argparse.ArgumentParser(description="VoiceBroker COM Server")
     parser.add_argument('action', choices=['register', 'unregister'], help="Register or unregister the COM server")

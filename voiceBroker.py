@@ -81,6 +81,7 @@ class VoiceBroker:
         # Extract text from the pTextFragList
         try:
             text = self._extract_text_from_fragments(pTextFragList)
+            logging.debug(f"[Speak] Extracted text: {text}")
         except Exception as e:
             logging.error(f"[Speak] Failed to extract text from fragments: {str(e)}")
             return
@@ -93,6 +94,7 @@ class VoiceBroker:
 
         try:
             ssml_text = engine.ssml.add(text)
+            logging.debug(f"[Speak] SSML Text: {ssml_text}")
             engine.start_playback_with_callbacks(ssml_text, callback=handle_event)
         except Exception as e:
             logging.error(f"[Speak] Failed to start playback with callbacks: {str(e)}")

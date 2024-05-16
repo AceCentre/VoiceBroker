@@ -1,0 +1,30 @@
+{
+    "polly": [
+      {
+        "voiceid": "Joanna",
+        "name": "Joanna",
+        "language": "en-US",
+        "gender": "Female"
+      },
+      {
+        "voiceid": "Matthew",
+        "name": "Matthew",
+        "language": "en-US",
+        "gender": "Male"
+      }
+    ],
+    "microsoft": [
+      {
+        "voiceid": "en-US-AriaNeural",
+        "name": "Aria",
+        "language": "en-US",
+        "gender": "Female"
+      },
+      {
+        "voiceid": "en-US-GuyNeural",
+        "name": "Guy",
+        "language": "en-US",
+        "gender": "Male"
+      }
+      ]
+}

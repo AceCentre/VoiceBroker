@@ -40,7 +40,7 @@ class VoiceBroker:
             logging.error(f"[load_credentials] Failed to load credentials from file: {file_path}, Error: {str(e)}")
 
     def register_tts_engines(self):
-        required_engines = set(self.settings["Voices"].keys())
+        required_engines = set(self.settings.keys())
         for engine in required_engines:
             try:
                 if engine == "polly":

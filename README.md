@@ -5,8 +5,8 @@ This project demonstrates how to create a Python COM server that functions as a 
 ## Quick notes:
 
 - voiceBroker.py looks like it should work (use it with a admin shell). Use it with demoClient for example. This is the code we want to work from
-- voiceBroker-MSVanilla.py is not using tts-wrapper. Just for Azure, The code is a little older - i dare the creds might not work.
-- But using in any SAPI system and it doesnt. We need to debug this. I think somethings missing (e.g try it in https://www.cross-plus-a.com/balabolka.htm)
+- (voiceBroker-MSVanilla.py is not using tts-wrapper. Just for Azure, The code is a little older - i dare the creds might not work.
+- look at basic_demo_register.py. Its a really basic version of this more complex code. Uing any of these com registration code in any SAPI system and it doesnt work. We need to debug this. I think somethings missing (e.g try it in https://www.cross-plus-a.com/balabolka.htm)
 - Work with basic_demo_register.py and then find what is missing
 - You need the correct credentials.json
 - demoClientExtended - try it by all means but I have little faith in the onWord event handling being passed through correctly. 

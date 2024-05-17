@@ -37,10 +37,10 @@ this is also some code that demonstrates how we could test it
 ## Aims
 
 - [x] Basic setting as a COM Service wih some functions
-- [] Correctly register in the registry
-- [] First work on Azure (why? Because I know we can get word level timing - it should help for callbacks)
-- [] Extend this whole code for other libraries (Abstract the class out)
-- [] Allow for configuration by a seperate app to allow for choice of voices etc
+- [x] Correctly register in the registry (although ids could be refactored)
+- [x] First work on Azure using tts-wrapper (why? Because I know we can get word level timing - it should help for callbacks)
+- [] check other libraries 
+- [] Allow for configuration by a seperate app to allow for choice of voices etc. note how settings is the key file and a credentials file 
 
 
 ## Features

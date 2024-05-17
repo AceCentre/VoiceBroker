@@ -16,6 +16,8 @@ Here's what I think is going on. I think we have largely followed the details he
 We register the Engine and com service. That definitely works and we can get speak working with demoClient.py. But trying it any proper SAPI application doesnt. We are finding it hard to debug this.
 I have a feeling we have methods that arent implemented or speech isnt being called correctly. Im struggling to figure out from the MS docs whats going on. 
 
+**ms docs:** https://learn.microsoft.com/en-us/dotnet/api/system.speech.synthesis.ttsengine?view=net-8.0
+
 **Note:** look at requirements. we are using py3.11.4 and using our own forks of py3-tts - you'll see why. 
 
 this is also some code that demonstrates how we could test it

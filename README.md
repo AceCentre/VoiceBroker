@@ -18,6 +18,19 @@ I have a feeling we have methods that arent implemented or speech isnt being cal
 
 **Note:** look at requirements. we are using py3.11.4 and using our own forks of py3-tts - you'll see why. 
 
+this is also some code that demonstrates how we could test it
+
+import win32com.client as wincl
+
+speaker_number = 1
+spk = wincl.Dispatch("SAPI.SpVoice")
+vcs = spk.GetVoices()
+SVSFlag = 11
+print(vcs.Item (speaker_number) .GetAttribute ("Name")) # speaker name
+spk.Voice
+spk.SetVoice(vcs.Item(speaker_number)) # set voice (see Windows Text-to-Speech settings)
+spk.Speak("Hello, it works!")
+
 ```
 
 ## Aims

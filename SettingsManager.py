@@ -39,6 +39,10 @@ def create_tts_client(service, credentials):
         raise ValueError("Unsupported TTS service")
     return tts
 
+def play_voice(tts, voice_id, text="Hello, world!"):
+    ssml_text = tts.ssml.add(text)
+    tts.speak(ssml_text, voice_id=voice_id)
+
 def main():
     credentials = load_credentials()
     settings = load_settings()
@@ -55,6 +59,10 @@ def main():
     voices_dict = {
         "polly": polly_voices,
         "microsoft": microsoft_voices
+    }
+    tts_dict = {
+        "polly": polly_tts,
+        "microsoft": microsoft_tts
     }
 
     layout = [
@@ -73,8 +81,12 @@ def main():
         if event == "-SERVICE-":
             selected_service = values["-SERVICE-"]
             voices = voices_dict[selected_service]
-            voice_list = [f"{voice['voiceid']} - {voice['name']} ({voice['language']}, {voice['gender']})" for voice in voices]
-            window["-VOICES-"].update(voice_list)
+            voice_list = [[f"{voice['voiceid']} - {voice['name']} ({voice['language']}, {voice['gender']})", sg.Button("Play", key=f"-PLAY-{voice['voiceid']}-")] for voice in voices]
+            window.extend_layout(window, [[sg.Column(voice_list)]])
+        if "Play" in event:
+            selected_service = values["-SERVICE-"]
+            voice_id = event.split("-")[2]
+            play_voice(tts_dict[selected_service], voice_id)
         if event == "Save Selection":
             selected_service = values["-SERVICE-"]
             selected_indices = values["-VOICES-"]

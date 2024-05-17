@@ -39,8 +39,8 @@ this is also some code that demonstrates how we could test it
 - [x] Basic setting as a COM Service wih some functions
 - [x] Correctly register in the registry (although ids could be refactored)
 - [x] First work on Azure using tts-wrapper (why? Because I know we can get word level timing - it should help for callbacks)
-- [] check other libraries 
-- [] Allow for configuration by a seperate app to allow for choice of voices etc. note how settings is the key file and a credentials file 
+- [ ] check other libraries 
+- [ ] Allow for configuration by a seperate app to allow for choice of voices etc. note how settings is the key file and a credentials file 
 
 
 ## Features
@@ -67,7 +67,7 @@ Before you start using this project, ensure you have the following:
 2, **Install Dependencies**
 
     ```bash
-    pip install -r requiremebts.txt
+    pip install -r requirements.txt
     ```
 
 3. **Configure Azure API Key and Region**

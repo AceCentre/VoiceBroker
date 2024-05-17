@@ -53,21 +53,21 @@ this is also some code that demonstrates how we could test it
 ## Prerequisites
 
 Before you start using this project, ensure you have the following:
-- Python 3.7 or higher
-- Azure subscription and Speech service created on Azure portal
-- Required Python packages: `azure-cognitiveservices-speech`, `pythoncom`, `win32com.client`, `simpleaudio`
+- Python 3.11.4 or higher
+- Azure subscription and Speech service created on Azure portal. or polly etc 
+- Required Python packages: `tts-wrapper (willwade fork)`, `pythoncom`, `win32com.client`, `simpleaudio`
 
 ## Installation
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourgithubusername/python-sapi-azure.git
-   cd python-sapi-azure
+   git clone https://github.com/AceCentre/VoiceBroker.git
+   cd VoiceBroker
    ```
 2, **Install Dependencies**
 
     ```bash
-    pip install azure-cognitiveservices-speech pythoncom pywin32 simpleaudio
+    pip install -r requiremebts.txt
     ```
 
 3. **Configure Azure API Key and Region**
@@ -79,7 +79,7 @@ Set up your Azure API key and region in the configuration section of the script 
 To run the server and register it as a COM object on your Windows machine, execute:
 
 ```bash
-python PythonTTSVoice.py --register
+python VoiceBroker.py --register
 ```
 
 After registration, your Python COM server will be available for use by any SAPI-compatible software.

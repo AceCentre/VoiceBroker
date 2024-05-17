@@ -3,19 +3,18 @@ import json
 import logging
 from tts_wrapper import PollyClient, PollyTTS, MicrosoftClient, MicrosoftTTS
 
-def create_tts_client(service, settings):
-    if service == "polly":
-        creds = settings.get('Polly', {})
-        client = PollyClient(credentials=(creds.get('aws_key_id'), creds.get('aws_secret_access_key')))
-        tts = PollyTTS(client=client)
-    elif service == "microsoft":
-        creds = settings.get('Microsoft', {})
-        client = MicrosoftClient(credentials=creds.get('subscription_key'), region=creds.get('region'))
-        tts = MicrosoftTTS(client=client)
-    else:
-        raise ValueError("Unsupported TTS service")
-    return tts
+# Load credentials from file
+def load_credentials():
+    try:
+        with open('credentials.json', 'r') as f:
+            credentials = json.load(f)
+        logging.debug("Credentials loaded from file.")
+        return credentials
+    except FileNotFoundError:
+        logging.error("Credentials file not found. Ensure 'credentials.json' is in the correct location.")
+        return {}
 
+# Load settings from file
 def load_settings():
     try:
         with open('settings.json', 'r') as f:
@@ -26,13 +25,31 @@ def load_settings():
         logging.error("Settings file not found. Ensure 'settings.json' is in the correct location.")
         return {}
 
-def main():
-    settings = load_settings()
-    polly_tts = create_tts_client("polly", settings)
-    microsoft_tts = create_tts_client("microsoft", settings)
+# Create TTS client based on the service type
+def create_tts_client(service, credentials):
+    if service == "polly":
+        creds = credentials.get('polly', {})
+        client = PollyClient(credentials=(creds.get('aws_key_id'), creds.get('aws_access_key')))
+        tts = PollyTTS(client=client)
+    elif service == "microsoft":
+        creds = credentials.get('microsoft', {})
+        client = MicrosoftClient(credentials=creds.get('token'), region=creds.get('region'))
+        tts = MicrosoftTTS(client=client)
+    else:
+        raise ValueError("Unsupported TTS service")
+    return tts
 
-    polly_voices = polly_tts.get_voices()
-    microsoft_voices = microsoft_tts.get_voices()
+def main():
+    credentials = load_credentials()
+    settings = load_settings()
+
+    # Create TTS clients
+    polly_tts = create_tts_client("polly", credentials)
+    microsoft_tts = create_tts_client("microsoft", credentials)
+
+    # Fetch voices (simulated with settings)
+    polly_voices = settings.get("polly", [])
+    microsoft_voices = settings.get("microsoft", [])
 
     service_list = ["polly", "microsoft"]
     voices_dict = {
@@ -56,12 +73,12 @@ def main():
         if event == "-SERVICE-":
             selected_service = values["-SERVICE-"]
             voices = voices_dict[selected_service]
-            voice_list = [f"{voice['Id']} - {voice['Name']} ({voice['LanguageCode']}, {voice['Gender']})" for voice in voices]
+            voice_list = [f"{voice['voiceid']} - {voice['name']} ({voice['language']}, {voice['gender']})" for voice in voices]
             window["-VOICES-"].update(voice_list)
         if event == "Save Selection":
             selected_service = values["-SERVICE-"]
             selected_indices = values["-VOICES-"]
-            selected_voices = [voices_dict[selected_service][i] for i in range(len(voices_dict[selected_service])) if voices_dict[selected_service][i]['Id'] in [item.split(' - ')[0] for item in selected_indices]]
+            selected_voices = [voices_dict[selected_service][i] for i in range(len(voices_dict[selected_service])) if f"{voices_dict[selected_service][i]['voiceid']} - {voices_dict[selected_service][i]['name']} ({voices_dict[selected_service][i]['language']}, {voices_dict[selected_service][i]['gender']})" in selected_indices]
 
             voices_json = {selected_service: selected_voices}
 

@@ -1,6 +1,6 @@
 # SAPI Bridge for Online TTS
 
-This project demonstrates how to create a Python COM server that functions as a bridge between the Microsoft Azure Speech SDK and the Speech Application Programming Interface (SAPI) used by Windows. It allows applications expecting SAPI compatibility to utilize Azure's advanced neural voices for text-to-speech (TTS) functionalities.
+This project demonstrates how to create a Python COM server that functions as a bridge between online Text to Speech services and other engines which dont have SAPI imterfaces like Microsoft Azure Speech SDK and the Speech Application Programming Interface (SAPI) used by Windows. It allows applications expecting SAPI compatibility to utilize Azure's advanced neural voices for text-to-speech (TTS) functionalities.
 
 ## Quick notes:
 
